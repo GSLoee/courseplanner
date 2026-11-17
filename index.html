@@ -222,6 +222,37 @@ details.more[open] summary{margin-bottom:10px}
 .tt-mini .blk b{font-size:10px}
 .tt-mini .tt-times span{font-size:9px;right:3px}
 
+/* ---------- Schedule builder (wide screens) ---------- */
+.wrap.wide{max-width:1720px}
+.builder{display:grid;grid-template-columns:minmax(280px,320px) minmax(360px,410px) minmax(0,1fr);grid-template-areas:"search courses tt";gap:20px;align-items:start}
+.b-search{grid-area:search;min-width:0}.b-courses{grid-area:courses;min-width:0}.b-right{grid-area:tt}
+@media (max-width:1439px){.builder{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"search courses" "tt tt"}.b-right{position:static!important;max-height:none!important;overflow:visible!important}}
+.b-right{position:sticky;top:76px;display:flex;flex-direction:column;gap:12px;min-width:0;max-height:calc(100vh - 88px);overflow:auto;padding-bottom:4px}
+.b-right .metrics{padding:10px 16px;gap:8px 24px}
+.b-right .kv b{font-size:19px}
+.vcards{display:flex;flex-direction:column;gap:10px}
+.vcard{border:1.5px solid var(--line);border-radius:10px;background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:8px}
+.vcard.is-new{border:2px dashed var(--accent)}
+.vcard.is-focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.vc-head{display:flex;gap:10px;align-items:flex-start}
+.vc-head .chip-sm{margin-top:6px}
+.vc-title{flex:1;min-width:0}
+.vc-nav{display:flex;gap:6px;align-items:center}
+.vc-nav .select{flex:1;min-width:0;padding:6px 8px}
+.vc-nav .btn{padding:5px 10px}
+.vc-sec{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:8px;background:var(--surface-2);border:1.5px solid transparent}
+.vc-sec.is-off{border:1.5px dashed #9AA0AC}
+.vc-sec.is-off .sec-top,.vc-sec.is-off .sec-sub{color:var(--ink-3)}
+.vc-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rrow{display:flex;gap:10px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line-2)}
+.rrow:last-child{border-bottom:0}
+.rrow .chip-sm{margin-top:6px}
+.rr-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.rrow{flex-wrap:wrap}.rr-act{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;width:100%;padding-left:20px}
+.blk.pv{background:var(--surface);border:2px dashed var(--c);border-left:5px dashed var(--c)}
+.pv-tag{display:inline-block;font-size:10.5px;font-weight:900;color:#fff;background:var(--c);border-radius:4px;padding:0 5px;margin-bottom:2px}
+.blk.faded{opacity:.35}
+
 /* ---------- Compare ---------- */
 .cmp-head{display:grid;grid-template-columns:minmax(150px,1.1fr) 1fr 1fr;gap:12px;align-items:end}
 .cmp th .select{font-size:15px;text-transform:none;letter-spacing:0;font-weight:800;color:var(--ink);max-width:220px;margin-left:auto;display:block}
@@ -389,9 +420,9 @@ const C={};COURSES.forEach(c=>{c.elig=c.prereqs.every(p=>p.ok)&&c.year<=2;C[c.id
 function eligReason(c){const p=c.prereqs.find(p=>!p.ok);if(p)return 'Needs '+p.code+' first';if(c.year>2)return 'Year 3 or higher only';return '';}
 
 /* ================= STATE ================= */
-const KEY='courseplanner-proto-v1', LOGKEY='courseplanner-study-v1';
+const KEY='courseplanner-proto-v2', LOGKEY='courseplanner-study-v1';
 function initState(){return{
-  plans:{A:{name:'Plan A',sections:{ITEC3220:'LEC A',ITEC3010:'LEC M',ITEC3210:'LEC Q'}},
+  plans:{A:{name:'Plan A',sections:{ITEC3220:'LEC A',ITEC3010:'LEC O',ITEC3210:'LEC Q'}},
          B:{name:'Plan B',note:'Shared by a classmate',sections:{ITEC3220:'LEC A',ITEC3010:'LEC N',ITEC3210:'LEC A',ITEC3020:'LEC B',SOSC2350:'LEC A'}}},
   order:['A','B'],active:'A',main:'A',blocks:[],cart:null,remind:false,nextBlock:1,
   ai:{goals:{credits:15,noFri:true,keepBlocks:true,avoidFull:true,interests:['UX','Data'],workload:'Moderate',plan:'A'},plan:null,items:[],seq:1}
@@ -403,7 +434,7 @@ function load(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 function saveLog(){try{localStorage.setItem(LOGKEY,JSON.stringify(LOG));}catch(e){}}
 const ui={q:'',f:{req:{core3:false,core4:false,elec:false},fits:false,nofri:false,seats:false,elig:false,r4:false},sort:'fit',
-  layer:null,menu:null,swap:null,detailSel:{},blockForm:null,cmp:null,pendingCart:null};
+  layer:null,menu:null,swap:null,detailSel:{},blockForm:null,cmp:null,pendingCart:null,browse:{},adding:null,focus:null,compact:false};
 const hist=[];
 
 /* ================= HELPERS ================= */
@@ -460,23 +491,29 @@ function go(to){if(location.hash.slice(1)===to){render();return;}location.hash=t
 window.addEventListener('hashchange',()=>{ui.layer=null;ui.menu=null;ui.swap=null;render();window.scrollTo(0,0);logEv('nav',route());});
 
 /* ================= RENDER ================= */
-function render(){renderNav();const r=route();let html='';
+/* Wide screens get search + timetable on one page (like a visual schedule builder); phones keep them as two pages. */
+const WIDE=window.matchMedia?window.matchMedia('(min-width:1100px)'):{matches:true};
+function isWide(){return !!WIDE.matches;}
+function isBuilderRoute(r){return r==='search'||r==='timetable'||r==='builder';}
+function inBuilder(){return isWide()&&isBuilderRoute(route());}
+if(WIDE.addEventListener)WIDE.addEventListener('change',()=>render());
+function render(){renderNav();const r=route();let html='';ui.compact=inBuilder();
   if(r==='progress')html=vProgress();
-  else if(r==='search')html=vSearch();
+  else if(isBuilderRoute(r))html=isWide()?vBuilder():(r==='search'?vSearch():vTimetable());
   else if(r.startsWith('course-')){const c=C[r.slice(7).toUpperCase()];html=c?vDetail(c):vNotFound();}
-  else if(r==='timetable')html=vTimetable();
   else if(r==='compare')html=vCompare();
   else if(r==='assistant')html=vAssistant();
   else if(r==='cart')html=vCart();
   else html=vNotFound();
-  $('#main').innerHTML=html;renderLayer();renderMod();
-  if(r==='search')bindSearch();}
-function renderNav(){const r=route();const cur=k=>(r===k||(k==='search'&&r.startsWith('course-')))?'aria-current="page"':'';
+  $('#main').innerHTML=html;$('#main').classList.toggle('wide',inBuilder());renderLayer();renderMod();
+  if(r==='search'||inBuilder())bindSearch();}
+function renderNav(){const r=route(),w=isWide();
+  const cur=k=>{let on=r===k;if(k==='search')on=r==='search'||r.startsWith('course-');if(k==='timetable')on=r==='timetable'||r==='builder';if(k==='builder')on=isBuilderRoute(r)||r.startsWith('course-');return on?'aria-current="page"':'';};
   const cartN=S.cart&&S.plans[S.cart]?entries(mapOf(S.cart)).length:0;
   $('#nav').innerHTML=`
    <button data-action="go" data-to="progress" ${cur('progress')}>Progress</button>
-   <button data-action="go" data-to="search" ${cur('search')}>Search</button>
-   <button data-action="go" data-to="timetable" ${cur('timetable')}>Timetable</button>
+   ${w?`<button data-action="go" data-to="builder" ${cur('builder')}>Schedule builder</button>`:`<button data-action="go" data-to="search" ${cur('search')}>Search</button>
+   <button data-action="go" data-to="timetable" ${cur('timetable')}>Timetable</button>`}
    <button data-action="go" data-to="compare" ${cur('compare')}>Compare</button>
    <button data-action="go" data-to="assistant" ${cur('assistant')}><span class="ai-tag">AI</span>Assistant</button>
    <button data-action="go" data-to="cart" ${cur('cart')}>Cart <span class="count tnum" aria-label="${cartN} courses">${cartN}</span></button>`;
@@ -493,7 +530,7 @@ function renderNav(){const r=route();const cur=k=>(r===k||(k==='search'&&r.start
      <div class="menu-item"><b>Winter 2027 enrolment</b><div class="muted">Opens ${ENROL_OPENS}. Have your cart ready.</div></div>
      <div class="menu-item"><b>New sample ratings</b><div class="muted">Instructor ratings were refreshed this week.</div></div></div>`:''}
    ${ui.menu==='help'?`<div class="menu" role="menu" style="min-width:300px"><div class="menu-head"><b>How CoursePlanner works</b></div>
-     <div class="menu-item small">1. <b>Search</b> for courses. Each result says if you can take it.<br>2. Build a <b>Timetable</b>. Clashes turn orange.<br>3. <b>Compare</b> your plans side by side.<br>4. The <b>AI Assistant</b> only suggests; nothing changes until you accept.<br>5. Send one plan to your <b>Cart</b> before enrolment opens.</div></div>`:''}`;}
+     <div class="menu-item small">1. <b>Search</b> for courses. Each result says if you can take it.<br>2. Build a <b>Timetable</b>. Sections that would clash are greyed out and never placed.<br>3. <b>Compare</b> your plans side by side.<br>4. The <b>AI Assistant</b> only suggests; nothing changes until you accept.<br>5. Send one plan to your <b>Cart</b> before enrolment opens.</div></div>`:''}`;}
 function vNotFound(){return `<div class="empty"><h2>Page not found</h2><p class="sub">This page isn't in the prototype.</p><p style="margin-top:12px"><button class="btn btn-primary" data-action="go" data-to="progress">Go to Progress</button></p></div>`;}
 
 /* ---------- Progress ---------- */
@@ -564,8 +601,19 @@ function cardHtml(c){const pid=S.active,map=mapOf(pid),fits=bestSecFor(c,map),in
     <div class="cc-line">${elig}<span>Counts toward <b>${REQ[c.req].name}</b></span></div>
     <div class="cc-line">${fitTxt}<span>Top instructor: ${esc(best.prof)} ${stars(best)}</span>${c.sections.some(s=>s.open<=0)?'<span class="pill warn">Full</span>':''}</div></div>
     <div class="cc-actions">${act}<button class="btn btn-ghost btn-sm" data-action="go" data-to="course-${c.id.toLowerCase()}">Details</button></div></article>`;}
+function rowHtml(c){const pid=S.active,map=mapOf(pid),fits=bestSecFor(c,map),inPlan=map[c.id];
+  const best=c.sections.slice().sort((a,b)=>b.r-a.r)[0];
+  const elig=c.elig?`<span class="elig ok">✓ You can take this</span>`:`<span class="elig no">✗ ${esc(eligReason(c))}</span>`;
+  const fitTxt=c.elig?(fits.length?`${fits.length} of ${c.sections.length} section${c.sections.length>1?'s':''} fit`:`<span class="reason">No section fits</span>`):'';
+  let act;
+  if(!c.elig)act=`<button class="btn btn-sm" aria-disabled="true" data-action="blocked" data-reason="${esc(c.code+': '+eligReason(c))}">+ Add</button>`;
+  else if(inPlan)act=`<span class="pill ok">✓ In plan · ${esc(inPlan)}</span><button class="btn btn-sm" data-action="b-add" data-cid="${c.id}">View sections</button>`;
+  else act=`<button class="btn btn-primary btn-sm" data-action="b-add" data-cid="${c.id}">+ Add</button>`;
+  return `<article class="rrow">${chip(c,true)}<div class="rr-body"><div><b>${c.code}</b> · ${esc(c.title)} <span class="muted small">${c.cr} cr</span></div>
+    <div class="small">${elig}${fitTxt?' · '+fitTxt:''}</div><div class="small muted">${REQ[c.req].name} · Top instructor ${stars(best)}</div></div>
+    <div class="rr-act">${act}<button class="btn btn-ghost btn-sm" data-action="go" data-to="course-${c.id.toLowerCase()}">Details</button></div></article>`;}
 function resultsHtml(){const list=searchResults();return `<p class="small muted tnum" id="resCount" aria-live="polite">${list.length} course${list.length===1?'':'s'} · Winter 2027</p>
-  <div class="results">${list.length?list.map(cardHtml).join(''):`<div class="empty"><b>No courses match.</b><p class="small" style="margin-top:6px">Try removing a filter.</p><p style="margin-top:12px"><button class="btn btn-sm" data-action="clear-filters">Clear filters</button></p></div>`}</div>`;}
+  <div class="results" ${ui.compact?'style="gap:0"':''}>${list.length?list.map(ui.compact?rowHtml:cardHtml).join(''):`<div class="empty"><b>No courses match.</b><p class="small" style="margin-top:6px">Try removing a filter.</p><p style="margin-top:12px"><button class="btn btn-sm" data-action="clear-filters">Clear filters</button></p></div>`}</div>`;}
 function vSearch(){const f=ui.f,ck=(id,on,label,extra)=>`<label class="check"><input type="checkbox" id="${id}" data-filter="${id}" ${on?'checked':''}><span>${label}${extra?`<br><span class="small muted">${extra}</span>`:''}</span></label>`;
   const opts=S.order.map(p=>`<option value="${p}" ${p===S.active?'selected':''}>${esc(S.plans[p].name)}</option>`).join('');
   return `<div class="page-head"><div><p class="eyebrow">Search</p><h1>Find courses</h1><p class="sub">Every result is checked against your record and your plan.</p></div>
@@ -611,7 +659,7 @@ function vDetail(c){const pid=S.active,map=mapOf(pid),cur=map[c.id];const sel=ui
   else if(!sel)addBtn=`<button class="btn btn-primary" aria-disabled="true" data-action="blocked" data-reason="Pick a section first.">Add to ${esc(planName(pid))}</button>`;
   else if(cur&&cur===sel)addBtn=`<span class="pill ok">✓ ${sel} is in ${esc(planName(pid))}</span>`;
   else addBtn=`<button class="btn btn-primary" data-action="apply-sec" data-cid="${c.id}" data-sid="${sel}" data-pid="${pid}">${cur?'Switch to '+sel:'Add '+sel+' to '+esc(planName(pid))}</button>`;
-  return `<p style="margin-bottom:12px"><button class="link" data-action="go" data-to="search">← Back to search</button></p>
+  return `<p style="margin-bottom:12px"><button class="link" data-action="go" data-to="search">← Back to ${isWide()?'schedule builder':'search'}</button></p>
   <div class="page-head"><div class="row" style="align-items:center;gap:14px">${chip(c)}<div><p class="eyebrow">${REQ[c.req].name}</p><h1>${c.code} · ${esc(c.title)}</h1><p class="sub">${c.cr} credits · Winter 2027</p></div></div></div>
   <div class="detail-grid">
    <div class="stack">
@@ -634,47 +682,102 @@ function vDetail(c){const pid=S.active,map=mapOf(pid),cur=map[c.id];const sel=ui
 const PX=44,T0=8*60,T1=22*60;
 function lanes(items){items.sort((a,b)=>a.s-b.s);items.forEach(it=>{const grp=items.filter(o=>o.s<it.e&&it.s<o.e);it.n=grp.length;it.i=grp.indexOf(it);});return items;}
 function gridHtml(map,opts){opts=opts||{};const px=opts.px||PX,mini=!!opts.mini;
-  const clashSet=new Set(),hitSet=new Set();clashes(map).forEach(x=>{clashSet.add(x.a.cid);clashSet.add(x.b.cid);});blockHits(map).forEach(x=>hitSet.add(x.e.cid));
-  const pend=opts.pending||[];
+  const pend=opts.pending||[],prv=opts.preview||[],fade=opts.fade||new Set();
   const head='<div class="tt-head"></div>'+DAYS.map(d=>`<div class="tt-head ${d==='Fri'?'fri':''}">${mini?d[0]:d}</div>`).join('');
   const hours=[];for(let h=mini?10:9;h<=21;h+= mini?2:1)hours.push(`<span style="top:${(h*60-T0)/60*px}px">${mini?h:fmt(h*60)}</span>`);
   const cols=DAYS.map(d=>{let items=[];
     entries(map).forEach(en=>en.s.meets.filter(x=>x.d===d).forEach(x=>items.push({k:'c',en,s:tm(x.s),e:tm(x.e)})));
     pend.forEach(p=>{const s=secOf(p.cid,p.sid);s.meets.filter(x=>x.d===d).forEach(x=>items.push({k:'ai',p,s:tm(x.s),e:tm(x.e)}));});
+    prv.forEach(p=>{const s=secOf(p.cid,p.sid);s.meets.filter(x=>x.d===d).forEach(x=>items.push({k:'pv',p,s:tm(x.s),e:tm(x.e)}));});
     lanes(items);
-    const blocks=items.map(it=>{const top=(it.s-T0)/60*px,h=(it.e-it.s)/60*px-2,w=100/it.n,left=`calc(${it.i*w}% + 3px)`,width=`calc(${w}% - 6px)`;
-      if(it.k==='ai'){const c=C[it.p.cid];return `<button class="blk ai" style="top:${top}px;height:${h}px;left:${left};width:${width};right:auto" data-action="go" data-to="assistant" aria-label="Pending AI suggestion: ${c.code} ${it.p.sid}">${mini?'':'<span class="ai-tag-inline">AI</span>'}<b>${c.code}</b>${mini?'':it.p.sid+' · pending'}</button>`;}
-      const e=it.en,c=e.c,cl=clashSet.has(e.cid),hit=hitSet.has(e.cid);
-      return `<button class="blk ${cl?'clash':''} ${hit&&!cl?'hit':''}" style="--c:${c.color[0]};--cs:${c.color[1]};top:${top}px;height:${h}px;left:${left};width:${width};right:auto" ${mini?'tabindex="-1"':`data-action="open-secs" data-cid="${e.cid}"`} aria-label="${c.code} ${e.sid}, ${fmt(it.s)} to ${fmt(it.e)}${cl?', clash':''}${hit?', overlaps blocked time':''}">
-        ${!mini&&cl?'<span class="flag">Clash</span>':''}${!mini&&hit&&!cl?'<span class="flag">Blocked time</span>':''}<b>${c.code}</b>${mini?'':(it.n>1?e.sid:`${e.sid} · ${fmt(it.s)}–${fmt(it.e)}`)}</button>`;}).join('');
+    const blocks=items.map(it=>{const top=(it.s-T0)/60*px,h=(it.e-it.s)/60*px-2,w=100/it.n,left=`calc(${it.i*w}% + 3px)`,width=`calc(${w}% - 6px)`,pos=`top:${top}px;height:${h}px;left:${left};width:${width};right:auto`;
+      if(it.k==='ai'){const c=C[it.p.cid];return `<button class="blk ai" style="${pos}" data-action="go" data-to="assistant" aria-label="Pending AI suggestion: ${c.code} ${it.p.sid}">${mini?'':'<span class="ai-tag-inline">AI</span>'}<b>${c.code}</b>${mini?'':it.p.sid+' · pending'}</button>`;}
+      if(it.k==='pv'){const c=C[it.p.cid];return `<button class="blk pv" style="--c:${c.color[0]};--cs:${c.color[1]};${pos}" data-action="apply-sec" data-cid="${c.id}" data-sid="${it.p.sid}" data-pid="${S.active}" aria-label="Preview of ${c.code} ${it.p.sid}, ${fmt(it.s)} to ${fmt(it.e)}. Click to use this section."><span class="pv-tag">Preview</span><b>${c.code}</b>${it.n>1?it.p.sid:`${it.p.sid} · ${fmt(it.s)}–${fmt(it.e)}`}</button>`;}
+      const e=it.en,c=e.c;
+      return `<button class="blk ${fade.has(e.cid)?'faded':''}" style="--c:${c.color[0]};--cs:${c.color[1]};${pos}" ${mini?'tabindex="-1"':`data-action="open-secs" data-cid="${e.cid}"`} aria-label="${c.code} ${e.sid}, ${fmt(it.s)} to ${fmt(it.e)}">
+        <b>${c.code}</b>${mini?'':(it.n>1?e.sid:`${e.sid} · ${fmt(it.s)}–${fmt(it.e)}`)}</button>`;}).join('');
     const pb=(opts.noBlocks?[]:S.blocks).filter(b=>b.days.includes(d)).map(b=>{const top=(tm(b.s)-T0)/60*px,h=(tm(b.e)-tm(b.s))/60*px-2;
       return `<div class="pblk" style="top:${top}px;height:${h}px;left:0;right:0;z-index:0"><span>${mini?'':esc(b.label)+' · '+b.s+'–'+b.e}</span>${mini?'':`<button data-action="del-block" data-id="${b.id}" aria-label="Remove ${esc(b.label)} on ${d}">✕</button>`}</div>`;}).join('');
     return `<div class="tt-day" style="height:${(T1-T0)/60*px}px;--px:${px}px">${pb}${blocks}</div>`;}).join('');
   return `<div class="tt">${head}<div class="tt-times" style="height:${(T1-T0)/60*px}px">${hours.join('')}</div>${cols}</div>`;}
 function pendingFor(pid){return S.ai.plan===pid?S.ai.items.filter(x=>x.status==='pending').map(x=>({cid:x.cid,sid:x.sid})):[];}
-function vTimetable(){const pid=S.active,P=S.plans[pid];if(!P){S.active=S.main;return vTimetable();}
-  const map=P.sections,cl=clashes(map),bh=blockHits(map),fr=fridays(map),cr=credits(map),days=daysOf(map),pend=pendingFor(pid);
-  const tabs=S.order.map(p=>`<button class="tab" role="tab" aria-selected="${p===pid}" data-action="set-active" data-pid="${p}">${esc(S.plans[p].name)}${p===S.main?' <span aria-label="main plan">★</span>':''}</button>`).join('');
-  const cartReason=cl.length?`Fix ${cl.length} clash${cl.length>1?'es':''} before sending this plan to your cart.`:bh.length?`Move ${bh.length} class${bh.length>1?'es':''} out of your blocked time first.`:!cr?'Add at least one course first.':'';
-  const banners=cl.map(x=>`<div class="banner" role="alert"><span class="b-icon">!</span><div class="b-text"><b>Time clash:</b> ${x.a.c.code} ${x.a.sid} overlaps ${x.b.c.code} ${x.b.sid} on ${[...new Set(x.hits.map(h=>h.d))].join(' & ')} at ${fmt(x.hits[0].s)}.</div>
-      <button class="btn btn-sm" data-action="open-secs" data-cid="${x.b.cid}">Change ${x.b.c.code} section</button><button class="btn btn-sm" data-action="open-secs" data-cid="${x.a.cid}">Change ${x.a.c.code}</button></div>`).join('')
-   +bh.map(x=>`<div class="banner" role="alert"><span class="b-icon">!</span><div class="b-text"><b>Blocked time:</b> ${x.e.c.code} ${x.e.sid} overlaps your “${esc(x.b.label)}” time on ${x.hits.map(h=>h.d).join(' & ')}.</div><button class="btn btn-sm" data-action="open-secs" data-cid="${x.e.cid}">Change section</button></div>`).join('')
-   +(pend.length?`<div class="banner info"><span class="b-icon">AI</span><div class="b-text">${pend.length} AI suggestion${pend.length>1?'s are':' is'} waiting for you. Dashed blocks are not in your plan yet.</div><button class="btn btn-sm btn-ai" data-action="go" data-to="assistant">Review suggestions</button></div>`:'');
-  const list=entries(map).map(e=>`<div class="cl-row">${chip(e.c)}<div class="cl-main"><b>${e.c.code} · ${esc(e.c.title)}</b><div class="small muted">${e.sid} · ${meetText(e.s)} · ${esc(e.s.prof)} ${stars(e.s)}</div>${e.s.open<=0?'<span class="pill warn">Full · waitlist</span>':''}</div>
-     <button class="btn btn-sm" data-action="open-secs" data-cid="${e.cid}">Change section</button><button class="btn btn-ghost btn-sm" data-action="remove-course" data-cid="${e.cid}">Remove</button></div>`).join('');
-  return `<div class="page-head"><div><p class="eyebrow">Timetable · Winter 2027</p><h1>${esc(P.name)}${pid===S.main?' <span class="pill info" style="vertical-align:middle">★ Main plan</span>':''}</h1>${P.note?`<p class="sub">${esc(P.note)}</p>`:''}</div>
-     <div class="tabs" role="tablist" aria-label="Plans">${tabs}<button class="tab" data-action="dup-plan">+ Duplicate</button></div></div>
-   <div class="stack">
-    <div class="metrics tnum"><div class="kv"><span>Credits</span><b>${cr}</b></div><div class="kv"><span>Days on campus</span><b>${days.length}</b></div><div class="kv"><span>Clashes</span><b style="color:${cl.length?'var(--warn)':'inherit'}">${cl.length}</b></div><div class="kv"><span>Friday classes</span><b>${fr.length}</b></div><div class="kv"><span>Blocked times</span><b>${S.blocks.length}</b></div></div>
-    <div class="toolbar"><button class="btn" data-action="go" data-to="search">+ Add course</button><button class="btn" data-action="open-block">Block time</button><button class="btn" data-action="go" data-to="compare">Compare plans</button>
+/* Shared timetable pieces. Clashing sections can never be placed, so the grid shows no clash markings. */
+function ttParts(pid,o){o=o||{};const P=S.plans[pid],map=P.sections,bh=blockHits(map),fr=fridays(map),cr=credits(map),days=daysOf(map),pend=pendingFor(pid);
+  const tabs=`<div class="tabs" role="tablist" aria-label="Plans">${S.order.map(p=>`<button class="tab" role="tab" aria-selected="${p===pid}" data-action="set-active" data-pid="${p}">${esc(S.plans[p].name)}${p===S.main?' <span aria-label="main plan">★</span>':''}</button>`).join('')}<button class="tab" data-action="dup-plan">+ Duplicate</button></div>`;
+  const cartReason=bh.length?`Move ${bh.length} class${bh.length>1?'es':''} out of your blocked time first.`:!cr?'Add at least one course first.':'';
+  const metrics=`<div class="metrics tnum"><div class="kv"><span>Credits</span><b>${cr}</b></div><div class="kv"><span>Days on campus</span><b>${days.length}</b></div><div class="kv"><span>Friday classes</span><b>${fr.length}</b></div><div class="kv"><span>Blocked times</span><b>${S.blocks.length}</b></div></div>`;
+  const toolbar=`<div class="toolbar">${o.builder?'':'<button class="btn" data-action="go" data-to="search">+ Add course</button>'}<button class="btn" data-action="open-block">Block time</button><button class="btn" data-action="go" data-to="compare">Compare plans</button>
       ${pid!==S.main?`<button class="btn btn-ghost" data-action="make-main" data-pid="${pid}">Make main plan</button><button class="btn btn-ghost" data-action="del-plan" data-pid="${pid}">Delete plan</button>`:''}<span class="spacer"></span>
       <button class="btn btn-primary" ${cartReason?`aria-disabled="true" data-action="blocked" data-reason="${esc(cartReason)}"`:`data-action="send-cart" data-pid="${pid}"`}>Send to cart</button></div>
-    ${cartReason&&cr?`<p class="reason" style="text-align:right">${esc(cartReason)}</p>`:''}
-    ${banners}
-    <div class="tt-scroll">${gridHtml(map,{pending:pend})}</div>
+    ${cartReason&&cr?`<p class="reason" style="text-align:right">${esc(cartReason)}</p>`:''}`;
+  const banners=bh.map(x=>`<div class="banner" role="status"><span class="b-icon">!</span><div class="b-text"><b>Blocked time:</b> ${x.e.c.code} ${x.e.sid} is during your “${esc(x.b.label)}” time on ${x.hits.map(h=>h.d).join(' & ')}.</div><button class="btn btn-sm" data-action="open-secs" data-cid="${x.e.cid}">Change section</button></div>`).join('')
+   +(pend.length?`<div class="banner info"><span class="b-icon">AI</span><div class="b-text">${pend.length} AI suggestion${pend.length>1?'s are':' is'} waiting for you. Dashed blocks are not in your plan yet.</div><button class="btn btn-sm btn-ai" data-action="go" data-to="assistant">Review suggestions</button></div>`:'');
+  const grid=gridHtml(map,{pending:pend,preview:o.preview,fade:o.fade,px:o.px});
+  return{tabs,metrics,toolbar,banners,grid};}
+function vTimetable(){const pid=S.active,P=S.plans[pid];if(!P){S.active=S.main;return vTimetable();}
+  const map=P.sections,T=ttParts(pid);
+  const list=entries(map).map(e=>`<div class="cl-row">${chip(e.c)}<div class="cl-main"><b>${e.c.code} · ${esc(e.c.title)}</b><div class="small muted">${e.sid} · ${meetText(e.s)} · ${esc(e.s.prof)} ${stars(e.s)}</div>${e.s.open<=0?'<span class="pill warn">Full · waitlist</span>':''}</div>
+     <button class="btn btn-sm" data-action="open-secs" data-cid="${e.cid}">Change section</button><button class="btn btn-ghost btn-sm" data-action="remove-course" data-cid="${e.cid}">Remove</button></div>`).join('');
+  return `<div class="page-head"><div><p class="eyebrow">Timetable · Winter 2027</p><h1>${esc(P.name)}${pid===S.main?' <span class="pill info" style="vertical-align:middle">★ Main plan</span>':''}</h1>${P.note?`<p class="sub">${esc(P.note)}</p>`:''}</div>${T.tabs}</div>
+   <div class="stack">${T.metrics}${T.toolbar}${T.banners}
+    <div class="tt-scroll">${T.grid}</div>
     <section class="panel"><div class="panel-head"><h2>Courses in ${esc(P.name)}</h2><span class="small muted">Click a block or a course to change its section</span></div>
      <div class="course-list">${list||'<div class="empty">No courses yet. <button class="link" data-action="go" data-to="search">Search for a course</button> to start.</div>'}</div></section>
    </div>`;}
+
+/* ---------- Schedule builder: search + section browser (left), timetable (right) ---------- */
+function firstFit(cid,map){const c=C[cid],ok=c.sections.find(s=>!fit(cid,s.id,map).hard.length);return(ok||c.sections[0]).id;}
+function viewSid(cid,map){const v=ui.browse[cid];if(v&&secOf(cid,v))return v;return map[cid]||firstFit(cid,map);}
+function vcard(cid,pid,map){const c=C[cid],cur=map[cid],sid=viewSid(cid,map),s=secOf(cid,sid),i=c.sections.findIndex(x=>x.id===sid),n=c.sections.length,f=fit(cid,sid,map),hard=f.hard.length>0&&sid!==cur;
+  const verb=cur?`Use ${sid}`:`Add ${sid} to ${esc(planName(pid))}`;
+  let status,btn='';
+  if(!c.elig){status=`<span class="sec-status warn">✗ ${esc(eligReason(c))}</span>`;btn=`<button class="btn btn-primary btn-sm" aria-disabled="true" data-action="blocked" data-reason="${esc(c.code+': '+eligReason(c))}">Add</button>`;}
+  else if(sid===cur)status=`<span class="sec-status ok">✓ In ${esc(planName(pid))}</span>`;
+  else if(hard){const why=f.hard.map(hardText).join('; ');status=`<span class="sec-status warn">✗ ${esc(why)}. It can't be placed, so it isn't shown on the timetable.</span>`;
+    btn=`<button class="btn btn-primary btn-sm" aria-disabled="true" data-action="blocked" data-reason="${esc(sid+': '+why)}">${verb}</button>`;}
+  else{const bits=[];if(f.soft.some(x=>x.t==='fri'))bits.push('Friday class');if(f.soft.some(x=>x.t==='full'))bits.push('Full · you would join the waitlist');
+    status=`<span class="sec-status ${bits.length?'info':'ok'}">${bits.length?'⚠ '+esc(bits.join(' · '))+' · ':'✓ '}Fits. Shown dashed on the timetable.</span>`;
+    btn=`<button class="btn btn-primary btn-sm" data-action="apply-sec" data-cid="${cid}" data-sid="${sid}" data-pid="${pid}">${verb}</button>`;}
+  const opts=c.sections.map(x=>{const h=fit(cid,x.id,map).hard.length&&x.id!==cur;return `<option value="${esc(x.id)}" ${x.id===sid?'selected':''}>${x.id} · ${meetText(x)}${x.id===cur?' (in plan)':h?' (clashes)':''}</option>`;}).join('');
+  return `<article class="vcard ${ui.focus===cid?'is-focus':''} ${cur?'':'is-new'}" id="vc-${cid}" aria-label="${c.code} sections">
+   <div class="vc-head">${chip(c,true)}<div class="vc-title"><b>${c.code}</b> · ${esc(c.title)}<div class="small muted">${c.cr} credits · ${REQ[c.req].name}</div></div>
+    ${cur?'':'<span class="pill info">Not added yet</span>'}<button class="close" data-action="${cur?'remove-course':'b-cancel'}" data-cid="${cid}" aria-label="${cur?'Remove '+c.code+' from '+esc(planName(pid)):'Stop adding '+c.code}">✕</button></div>
+   <div class="vc-nav"><button class="btn btn-sm" data-action="b-step" data-cid="${cid}" data-d="-1" aria-label="Previous section of ${c.code}">◀</button>
+    <label class="sr" for="vs-${cid}">Section of ${c.code}</label><select id="vs-${cid}" class="select" data-change="b-sec" data-cid="${cid}">${opts}</select>
+    <button class="btn btn-sm" data-action="b-step" data-cid="${cid}" data-d="1" aria-label="Next section of ${c.code}">▶</button><span class="small muted tnum" style="white-space:nowrap">${i+1} of ${n}</span></div>
+   <div class="vc-sec ${hard?'is-off':''}"><span class="sec-top">${s.id} · ${meetText(s)}</span><span class="sec-sub">${esc(s.prof)} · ${stars(s)} · <button class="link small" data-action="rmp" data-prof="${esc(s.prof)}" aria-label="Open ${esc(s.prof)} on Rate My Professors">RMP ↗</button></span><span class="sec-sub tnum">${seatText(s)}</span>${status}</div>
+   <div class="vc-actions"><button class="btn btn-ghost btn-sm" data-action="go" data-to="course-${cid.toLowerCase()}">Course details</button><span class="spacer"></span>${cur&&sid!==cur?`<button class="btn btn-ghost btn-sm" data-action="b-reset" data-cid="${cid}">Back to ${cur}</button>`:''}${btn}</div></article>`;}
+function vBuilder(){const pid=S.active,P=S.plans[pid];if(!P){S.active=S.main;return vBuilder();}
+  const map=P.sections;if(ui.adding&&map[ui.adding])ui.adding=null;
+  const ids=Object.keys(map).filter(cid=>C[cid]);if(ui.adding&&C[ui.adding])ids.unshift(ui.adding);
+  const prev=[],fade=new Set();
+  ids.forEach(cid=>{const sid=viewSid(cid,map);if(sid===map[cid]||!C[cid].elig)return;if(fit(cid,sid,map).hard.length)return;prev.push({cid,sid});if(map[cid])fade.add(cid);});
+  const T=ttParts(pid,{builder:true,preview:prev,fade,px:38});
+  const f=ui.f,ck=(id,on,label)=>`<label class="check"><input type="checkbox" id="${id}" data-filter="${id}" ${on?'checked':''}><span>${label}</span></label>`;
+  const nOn=Object.values(f.req).filter(Boolean).length+['fits','nofri','seats','elig','r4'].filter(k=>f[k]).length;
+  const opts=S.order.map(p=>`<option value="${p}" ${p===pid?'selected':''}>${esc(S.plans[p].name)}</option>`).join('');
+  return `<div class="page-head"><div><p class="eyebrow">Schedule builder · Winter 2027</p><h1>${esc(P.name)}${pid===S.main?' <span class="pill info" style="vertical-align:middle">★ Main plan</span>':''}</h1>
+     <p class="sub">Search on the left and step through sections. Sections that clash can't be placed, so they never appear on the timetable.</p></div>${T.tabs}</div>
+   <div class="builder">
+     <section class="panel b-search" aria-labelledby="ba"><h2 id="ba" style="margin-bottom:12px">Add courses</h2>
+      <div class="searchbox"><span aria-hidden="true">🔍</span><label for="q" class="sr">Search courses</label><input id="q" type="search" placeholder="Course code or title, e.g. ITEC 3330" value="${esc(ui.q)}" autocomplete="off"></div>
+      <div class="row" style="margin-top:10px;align-items:flex-start">
+       <details class="more" style="flex:1;min-width:0" ${nOn?'open':''}><summary>Filters${nOn?' ('+nOn+')':''}</summary>
+        <div class="filters" style="position:static;gap:12px">
+         <fieldset><legend>Requirement</legend>${ck('core3',f.req.core3,'Core ITEC 3000-level')}${ck('core4',f.req.core4,'Core ITEC 4000-level')}${ck('elec',f.req.elec,'Electives outside major')}</fieldset>
+         <fieldset><legend>Schedule</legend>${ck('fits',f.fits,'Fits '+esc(planName(pid)))}${ck('nofri',f.nofri,'Has a non-Friday section')}${ck('seats',f.seats,'Has open seats')}</fieldset>
+         <fieldset><legend>More</legend>${ck('elig',f.elig,'Only courses I can take')}${ck('r4',f.r4,'Instructor rated 4.0 or higher')}
+          <label class="check"><input type="checkbox" data-nyi="Delivery mode filter"><span>Online sections only</span></label></fieldset>
+         <button class="btn btn-sm" data-action="clear-filters" style="align-self:flex-start">Clear filters</button></div></details>
+       <label for="sortSel" class="sr">Sort</label><select id="sortSel" class="select" style="width:auto" data-change="sort">
+        <option value="fit" ${ui.sort==='fit'?'selected':''}>Best fit</option><option value="rating" ${ui.sort==='rating'?'selected':''}>Instructor rating</option><option value="code" ${ui.sort==='code'?'selected':''}>Course code</option></select></div>
+      <div id="results" style="margin-top:6px">${resultsHtml()}</div></section>
+     <section class="panel b-courses" aria-labelledby="bc"><div class="panel-head"><h2 id="bc">Courses</h2><div class="row"><label for="bPlan" class="small muted"><b>Plan</b></label><select id="bPlan" class="select" style="width:auto" data-change="active-plan">${opts}</select></div></div>
+      <div class="vcards">${ids.length?ids.map(cid=>vcard(cid,pid,map)).join(''):'<div class="empty">No courses yet. Search below and choose <b>+ Add</b>.</div>'}</div></section>
+    <div class="b-right" aria-label="Timetable">${T.metrics}${T.toolbar}${T.banners}<div class="tt-scroll">${T.grid}</div>
+     <p class="small muted">Solid blocks are in your plan. Dashed blocks are previews: click one, or its button on the left, to use that section.</p></div>
+   </div>`;}
+function scrollCard(cid){setTimeout(()=>{const el=document.getElementById('vc-'+cid);if(el){el.scrollIntoView({block:'nearest',behavior:'smooth'});}},30);}
 
 /* ---------- Compare ---------- */
 function vCompare(){if(!ui.cmp||!S.plans[ui.cmp[0]]||!S.plans[ui.cmp[1]])ui.cmp=[S.order[0],S.order[1]||S.order[0]];const[a,b]=ui.cmp,A=mapOf(a),B=mapOf(b),goal=S.ai.goals.credits;
@@ -684,7 +787,6 @@ function vCompare(){if(!ui.cmp||!S.plans[ui.cmp[0]]||!S.plans[ui.cmp[1]])ui.cmp=
    ['Credits',credits(A),credits(B),'near',goal,v=>v,'closer to your goal of '+goal],
    ['Days on campus',daysOf(A).length,daysOf(B).length,'low',0,(v,mp)=>v+' ('+(daysOf(mp).join(', ')||'none')+')','fewer'],
    ['Longest gap between classes',longestGap(A),longestGap(B),'low',0,v=>v?(v/60).toFixed(1)+' h':'none','shorter'],
-   ['Time clashes',clashes(A).length,clashes(B).length,'low',0,v=>v,'fewer'],
    ['Overlaps with blocked time',blockHits(A).length,blockHits(B).length,'low',0,v=>v,'fewer'],
    ['Friday classes',fridays(A).length,fridays(B).length,'low',0,v=>v,'fewer'],
    ['Average instructor rating',+avgRating(A).toFixed(1),+avgRating(B).toFixed(1),'high',0,v=>v?v.toFixed(1)+' / 5':'–','higher'],
@@ -864,15 +966,23 @@ function act(a,el,e){const d=el.dataset;
   case 'blocked':toast(d.reason||'Not available right now.',{err:true});logErr('Tried: '+(el.textContent.trim())+' — '+(d.reason||''));break;
   case 'rmp':toast('Would open '+d.prof+'’s Rate My Professors page in a new tab (not connected in this prototype).');logEv('click','RMP '+d.prof);break;
   case 'open-plan':S.active=d.pid;save();go('timetable');break;
-  case 'set-active':S.active=d.pid;save();render();break;
+  case 'set-active':S.active=d.pid;ui.browse={};ui.adding=null;save();render();break;
+  case 'b-add':{const map=mapOf(S.active);ui.focus=d.cid;if(!map[d.cid]){ui.adding=d.cid;ui.browse[d.cid]=firstFit(d.cid,map);}render();scrollCard(d.cid);break;}
+  case 'b-cancel':if(ui.adding===d.cid)ui.adding=null;delete ui.browse[d.cid];render();break;
+  case 'b-reset':delete ui.browse[d.cid];render();break;
+  case 'b-step':{const c=C[d.cid],map=mapOf(S.active),i=c.sections.findIndex(x=>x.id===viewSid(d.cid,map)),n=c.sections.length;
+    ui.browse[d.cid]=c.sections[(i+Number(d.d)+n)%n].id;ui.focus=d.cid;render();const b=document.querySelector(`[data-action="b-step"][data-cid="${d.cid}"][data-d="${d.d}"]`);if(b)b.focus();break;}
   case 'find-unmet':ui.f.req={core3:true,core4:false,elec:true};ui.f.elig=true;go('search');break;
   case 'clear-filters':ui.f={req:{core3:false,core4:false,elec:false},fits:false,nofri:false,seats:false,elig:false,r4:false};ui.q='';render();break;
-  case 'open-secs':ui.layer={type:'secs',cid:d.cid,sel:null};renderLayer();break;
+  case 'open-secs':if(inBuilder()){ui.focus=d.cid;if(!mapOf(S.active)[d.cid]){ui.adding=d.cid;ui.browse[d.cid]=firstFit(d.cid,mapOf(S.active));}render();scrollCard(d.cid);break;}
+    ui.layer={type:'secs',cid:d.cid,sel:null};renderLayer();break;
   case 'pick-sec':{if(el.getAttribute('aria-disabled')==='true'){toast(d.reason,{err:true});logErr('Picked greyed section '+d.cid+' '+d.sid+': '+d.reason);break;}
     if(ui.layer&&ui.layer.type==='secs'){ui.layer.sel=d.sid;renderLayer();}else{ui.detailSel[d.cid]=d.sid;render();}break;}
   case 'apply-sec':{const pid=d.pid,c=C[d.cid],cur=mapOf(pid)[d.cid];clashBefore=clashes(mapOf(pid)).length+blockHits(mapOf(pid)).length;ui.layer=null;delete ui.detailSel[d.cid];
+    if(fit(d.cid,d.sid,mapOf(pid)).hard.length){toast(fit(d.cid,d.sid,mapOf(pid)).hard.map(hardText).join('; '),{err:true});logErr('Tried to place a clashing section '+d.cid+' '+d.sid);break;}
+    delete ui.browse[d.cid];if(ui.adding===d.cid)ui.adding=null;ui.focus=d.cid;
     commit(()=>{S.plans[pid].sections[d.cid]=d.sid;},cur?`Switched ${c.code} to ${d.sid} in ${planName(pid)}`:`Added ${c.code} ${d.sid} to ${planName(pid)}`,{checkClash:pid});break;}
-  case 'remove-course':{const pid=S.active,c=C[d.cid];ui.layer=null;commit(()=>{delete S.plans[pid].sections[d.cid];},`Removed ${c.code} from ${planName(pid)}`);break;}
+  case 'remove-course':{const pid=S.active,c=C[d.cid];ui.layer=null;delete ui.browse[d.cid];commit(()=>{delete S.plans[pid].sections[d.cid];},`Removed ${c.code} from ${planName(pid)}`);break;}
   case 'close-layer':ui.layer=null;renderLayer();break;
   case 'open-block':ui.blockForm={label:'Work',days:[],s:'18:00',e:'22:00'};ui.layer={type:'block'};renderLayer();break;
   case 'block-day':{readBlockForm();const F=ui.blockForm,i=F.days.indexOf(d.d);if(i>=0)F.days.splice(i,1);else F.days.push(d.d);F.days.sort((x,y)=>DAYS.indexOf(x)-DAYS.indexOf(y));
@@ -914,7 +1024,8 @@ document.addEventListener('change',e=>{const el=e.target;
   const c=el.dataset.change;if(!c)return;
   if(c==='term'){if(el.value!=='W27'&&!el.value.startsWith('Winter')){el.value=el.tagName==='SELECT'&&el.id==='termSel'?'W27':'Winter 2027';notInPrototype('Other terms');}return;}
   if(c==='sort'){ui.sort=el.value;$('#results').innerHTML=resultsHtml();return;}
-  if(c==='active-plan'){S.active=el.value;save();render();return;}
+  if(c==='active-plan'){S.active=el.value;ui.browse={};ui.adding=null;save();render();return;}
+  if(c==='b-sec'){ui.browse[el.dataset.cid]=el.value;ui.focus=el.dataset.cid;render();const s=document.getElementById('vs-'+el.dataset.cid);if(s)s.focus();logEv('click','view section '+el.dataset.cid+' '+el.value);return;}
   if(c==='cmp'){ui.cmp[Number(el.dataset.i)]=el.value;render();return;}
   if(c==='ai-plan'){S.ai.goals.plan=el.value;save();render();return;}
   if(c==='ai-credits'){S.ai.goals.credits=Number(el.value);save();render();return;}
