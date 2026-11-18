@@ -124,6 +124,25 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14.5px}
 .kv b{font-family:var(--font-display);font-size:22px;font-weight:600}
 .kv span{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:800}
 
+/* ---------- Requirement details ---------- */
+.req-row{cursor:pointer}
+.req-row:hover td,.req-row.is-open td{background:var(--surface-2)}
+.req-row.is-open td{border-bottom-color:transparent}
+.req-tog{background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--ink);cursor:pointer;display:inline-flex;gap:8px;align-items:center;text-align:left}
+.caret{color:var(--accent);width:12px;display:inline-block;font-size:13px}
+.req-detail td{background:var(--surface-2);padding:2px 14px 16px 30px}
+.req-body{display:flex;flex-direction:column;gap:12px}
+.tbl.sub{font-size:13.5px;background:var(--surface);border:1px solid var(--line-2);border-radius:8px}
+.tbl.sub th{font-size:11px;padding:7px 10px}
+.tbl.sub td{padding:7px 10px}
+.req-plan{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1.5px dashed var(--accent);border-radius:8px;background:var(--surface)}
+/* ---------- Plan split button ---------- */
+.split{position:relative;display:inline-flex}
+.split .tab:first-child{border-radius:9px 0 0 9px}
+.split .split-arrow{border-left:0;border-radius:0 9px 9px 0;padding:7px 11px}
+.split-menu{top:44px;right:0;min-width:270px}
+.split-menu .muted{display:block;font-weight:400}
+
 /* ---------- Search ---------- */
 .search-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:20px;align-items:start}
 @media (max-width:860px){.search-layout{grid-template-columns:1fr}}
@@ -209,9 +228,18 @@ details.more[open] summary{margin-bottom:10px}
 .blk.hit{border:2px solid var(--warn);border-left:5px solid var(--warn)}
 .blk .flag{display:inline-block;margin-bottom:2px;font-size:11px;font-weight:900;color:#fff;background:var(--warn);border-radius:4px;padding:0 5px}
 .blk.ai{background:var(--surface);border:2px dashed var(--accent);color:var(--accent-deep);cursor:pointer}
-.pblk{position:absolute;left:3px;right:3px;border-radius:7px;padding:5px 7px;font-size:12.5px;font-weight:800;
-  background:repeating-linear-gradient(45deg,#D9D3C4 0 9px,#C9C1AE 9px 18px);color:var(--ink);display:flex;justify-content:space-between;gap:4px;overflow:hidden}
-.pblk button{background:var(--surface);border:0;border-radius:5px;width:22px;height:22px;cursor:pointer;font-weight:900;flex:none}
+.pblk{position:absolute;left:3px;right:3px;border-radius:5px;padding:4px 7px;font-size:12.5px;font-weight:800;z-index:2;pointer-events:none;
+  background:repeating-linear-gradient(45deg,#4B505D 0 9px,#434855 9px 18px);color:#FFFFFF;display:flex;justify-content:space-between;align-items:flex-start;gap:4px;overflow:hidden}
+.pblk span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pb-time{display:block;font-size:11.5px;font-weight:600;opacity:.85}
+.pblk button{pointer-events:auto;background:rgba(255,255,255,.9);color:var(--ink);border:0;border-radius:5px;width:20px;height:20px;cursor:pointer;font-weight:900;flex:none;line-height:1}
+.slot{position:absolute;left:0;right:0;z-index:1;cursor:pointer;touch-action:pan-y}
+.slot:hover{background:rgba(54,59,72,.13)}
+.slot.sel-on{background:rgba(54,59,72,.55)}
+.slot.sel-off{background:rgba(251,250,247,.6);z-index:4;box-shadow:inset 0 0 0 2px #363B48}
+.blk{z-index:3}
+.tt-hint{font-size:13px;color:var(--ink-2);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tt-hint .sw-dark{width:14px;height:14px;border-radius:3px;background:#4B505D;display:inline-block}
 .course-list{display:flex;flex-direction:column}
 .cl-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-2);flex-wrap:wrap}
 .cl-row:last-child{border-bottom:0}
@@ -358,6 +386,15 @@ const REQ={
   free:{name:'Free electives',done:0,need:18}
 };
 const REQ_ORDER=['core1','core2','core3','core4','elec','gened','free'];
+/* Completed courses (sample data): code, title, term, grade, credits. Totals match REQ[...].done. */
+const DONE={
+  core1:[['ITEC 1000','Introduction to Information Technologies','Fall 2024','A',3],['ITEC 1010','Information and Organizations','Fall 2024','A',3],['ITEC 1620','Object-Based Programming','Fall 2024','B+',3],
+         ['ITEC 1630','Object-Oriented Programming','Winter 2025','B',3],['ITEC 1150','Computer Systems Basics','Winter 2025','B+',3],['ITEC 1200','Data and Spreadsheets','Winter 2025','A−',3]],
+  core2:[['ITEC 2010','Systems Analysis and Design I','Fall 2025','B+',3],['ITEC 2210','Introduction to Networks','Fall 2025','B',3],['ITEC 2600','Introduction to Analytical Programming','Fall 2025','B+',3],
+         ['ITEC 2620','Introduction to Data Structures','Winter 2026','A−',3],['ITEC 2610','Object-Oriented Programming II','Winter 2026','B',3],['ITEC 2110','Ethics in Information Technology','Winter 2026','A',3]],
+  elec:[['ECON 1000','Introduction to Microeconomics','Fall 2024','B',3],['PSYC 1010','Introduction to Psychology','Winter 2025','A−',3]],
+  gened:[['HUMA 1825','Culture and Technology','Fall 2024 – Winter 2025','B+',6],['SOSC 1340','Cities and Society','Fall 2025 – Winter 2026','A−',6],['NATS 1700','Computers, Information and Society','Fall 2025 – Winter 2026','B',6]]
+};
 const DONE_TOTAL=60, DEGREE_TOTAL=120, MAX_LOAD=18;
 const ENROL_OPENS='Mon, Dec 7 at 9:00 AM';
 const INTEREST_LABEL={UX:'UX design',Data:'data',Web:'web development',Security:'security',Business:'business'};
@@ -434,7 +471,7 @@ function load(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 function saveLog(){try{localStorage.setItem(LOGKEY,JSON.stringify(LOG));}catch(e){}}
 const ui={q:'',f:{req:{core3:false,core4:false,elec:false},fits:false,nofri:false,seats:false,elig:false,r4:false},sort:'fit',
-  layer:null,menu:null,swap:null,detailSel:{},blockForm:null,cmp:null,pendingCart:null,browse:{},adding:null,focus:null,compact:false};
+  layer:null,menu:null,swap:null,detailSel:{},blockForm:null,cmp:null,pendingCart:null,reqOpen:{},planMenu:false,browse:{},adding:null,focus:null,compact:false};
 const hist=[];
 
 /* ================= HELPERS ================= */
@@ -534,6 +571,15 @@ function renderNav(){const r=route(),w=isWide();
 function vNotFound(){return `<div class="empty"><h2>Page not found</h2><p class="sub">This page isn't in the prototype.</p><p style="margin-top:12px"><button class="btn btn-primary" data-action="go" data-to="progress">Go to Progress</button></p></div>`;}
 
 /* ---------- Progress ---------- */
+function reqDetail(k,map){const q=REQ[k],done=DONE[k]||[],plan=entries(map).filter(e=>e.c.req===k),add=plan.reduce((t,e)=>t+e.c.cr,0),left=Math.max(0,q.need-q.done-add);
+  const doneHtml=done.length?`<div class="tbl-wrap"><table class="tbl sub"><thead><tr><th>Completed course</th><th>Term</th><th>Grade</th><th class="num">Credits</th></tr></thead><tbody>${done.map(d=>`<tr><td><b>${d[0]}</b> · ${esc(d[1])}</td><td>${d[2]}</td><td>${d[3]}</td><td class="num">${d[4]}</td></tr>`).join('')}</tbody></table></div>`
+    :`<p class="small muted">No completed courses in this requirement yet.</p>`;
+  const planHtml=plan.length?`<div class="req-plan"><b class="small">Planned for Winter 2027 in ${esc(planName(S.main))}</b>${plan.map(e=>`<div class="row small" style="gap:8px;flex-wrap:nowrap">${chip(e.c,true)}<span><b>${e.c.code}</b> · ${esc(e.c.title)} · ${e.sid}</span><span class="spacer"></span><span class="tnum">${e.c.cr} cr</span></div>`).join('')}</div>`:'';
+  let next;
+  if(left===0)next=`<span class="pill ok">✓ ${q.done>=q.need?'Requirement met':'Met once Winter 2027 is complete'}</span>`;
+  else if(k==='core4')next=`<span class="small"><b>${left} credits</b> still needed. 4000-level courses open in Year 3: ITEC 4020 needs ITEC 3020, and ITEC 4010 needs ITEC 3010.</span>`;
+  else next=`<span class="small"><b>${left} credits</b> still needed.</span><button class="btn btn-sm" data-action="find-req" data-k="${k}">Find ${k==='free'?'courses':esc(q.name)+' courses'}</button>`;
+  return `<div class="req-body">${doneHtml}${planHtml}<div class="row" style="gap:10px">${next}</div></div>`;}
 function vProgress(){const pid=S.main,map=mapOf(pid),planned=credits(map),ra=reqAdd(map);
   const rem=DEGREE_TOTAL-DONE_TOTAL-planned;
   const rows=REQ_ORDER.map(k=>{const q=REQ[k],add=ra[k]||0;let st;
@@ -543,7 +589,9 @@ function vProgress(){const pid=S.main,map=mapOf(pid),planned=credits(map),ra=req
     else if(k==='core4')st='<span class="pill neutral">Year 3</span>';
     else if(q.done>0)st='<span class="pill neutral">In progress</span>';
     else st='<span class="pill warn">Not started</span>';
-    return `<tr><td>${q.name}</td><td>${st}</td><td class="num">${add?`${q.done} → <b>${q.done+add}</b>`:q.done} / ${q.need}</td></tr>`;}).join('');
+    const open=!!ui.reqOpen[k];
+    return `<tr class="req-row ${open?'is-open':''}" data-action="req-toggle" data-k="${k}"><td><button class="req-tog" aria-expanded="${open}" aria-controls="rq-${k}" data-action="req-toggle" data-k="${k}"><span class="caret" aria-hidden="true">${open?'▾':'▸'}</span>${q.name}</button></td><td>${st}</td><td class="num">${add?`${q.done} → <b>${q.done+add}</b>`:q.done} / ${q.need}</td></tr>`
+      +(open?`<tr class="req-detail" id="rq-${k}"><td colspan="3">${reqDetail(k,map)}</td></tr>`:'');}).join('');
   const cl=clashes(map).length,fr=fridays(map).length,bh=blockHits(map).length;
   const planCards=S.order.map(p=>{const mp=mapOf(p),c1=clashes(mp).length,h1=blockHits(mp).length,f1=fridays(mp).length;
     const issues=[c1?`<span class="pill warn">${c1} clash${c1>1?'es':''}</span>`:'',h1?`<span class="pill warn">${h1} over blocked time</span>`:'',f1?`<span class="pill neutral">${f1} on Friday</span>`:''].join(' ');
@@ -558,7 +606,7 @@ function vProgress(){const pid=S.main,map=mapOf(pid),planned=credits(map),ra=req
      <div class="pbar" role="img" aria-label="${DONE_TOTAL} credits completed, ${planned} planned, ${rem} remaining of ${DEGREE_TOTAL}">
       <div class="done" style="flex:${DONE_TOTAL}"></div><div class="plan" style="flex:${planned}"></div><div style="flex:${rem}"></div></div>
      <div class="legend"><span><i class="sw" style="background:var(--accent)"></i>Completed (${DONE_TOTAL})</span><span><i class="sw" style="background:repeating-linear-gradient(45deg,#7E9DE6 0 4px,#C3D3F0 4px 8px)"></i>Planned for Winter (${planned})</span><span><i class="sw" style="background:var(--neutral-soft)"></i>Still needed (${rem})</span></div></section>
-    <section class="panel" aria-labelledby="rq"><div class="panel-head"><h2 id="rq">Requirements</h2><button class="btn btn-sm" data-action="find-unmet">Find courses for unmet requirements</button></div>
+    <section class="panel" aria-labelledby="rq"><div class="panel-head"><div><h2 id="rq">Requirements</h2><p class="small muted">Select a requirement to see its courses</p></div><button class="btn btn-sm" data-action="find-unmet">Find courses for unmet requirements</button></div>
      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Requirement</th><th>Status</th><th class="num">Credits</th></tr></thead><tbody>${rows}</tbody></table></div></section>
    </div>
    <div class="stack">
@@ -697,13 +745,15 @@ function gridHtml(map,opts){opts=opts||{};const px=opts.px||PX,mini=!!opts.mini;
       return `<button class="blk ${fade.has(e.cid)?'faded':''}" style="--c:${c.color[0]};--cs:${c.color[1]};${pos}" ${mini?'tabindex="-1"':`data-action="open-secs" data-cid="${e.cid}"`} aria-label="${c.code} ${e.sid}, ${fmt(it.s)} to ${fmt(it.e)}">
         <b>${c.code}</b>${mini?'':(it.n>1?e.sid:`${e.sid} · ${fmt(it.s)}–${fmt(it.e)}`)}</button>`;}).join('');
     const pb=(opts.noBlocks?[]:S.blocks).filter(b=>b.days.includes(d)).map(b=>{const top=(tm(b.s)-T0)/60*px,h=(tm(b.e)-tm(b.s))/60*px-2;
-      return `<div class="pblk" style="top:${top}px;height:${h}px;left:0;right:0;z-index:0"><span>${mini?'':esc(b.label)+' · '+b.s+'–'+b.e}</span>${mini?'':`<button data-action="del-block" data-id="${b.id}" aria-label="Remove ${esc(b.label)} on ${d}">✕</button>`}</div>`;}).join('');
-    return `<div class="tt-day" style="height:${(T1-T0)/60*px}px;--px:${px}px">${pb}${blocks}</div>`;}).join('');
+      return `<div class="pblk" style="top:${top}px;height:${h}px;left:0;right:0"><span>${mini?'':(h>=18?esc(b.label)+(h>=34?'<small class="pb-time">'+b.s+'–'+b.e+'</small>':''):'')}</span>${mini||h<26?'':`<button data-action="del-block" data-id="${b.id}" aria-label="Unblock ${esc(b.label)} on ${d}, ${b.s} to ${b.e}">✕</button>`}</div>`;}).join('');
+    const slots=mini?'':Array.from({length:(T1-T0)/30},(_,i)=>`<div class="slot" aria-hidden="true" data-d="${d}" data-i="${i}" style="top:${i*px/2}px;height:${px/2}px"></div>`).join('');
+    return `<div class="tt-day" style="height:${(T1-T0)/60*px}px;--px:${px}px">${slots}${pb}${blocks}</div>`;}).join('');
   return `<div class="tt">${head}<div class="tt-times" style="height:${(T1-T0)/60*px}px">${hours.join('')}</div>${cols}</div>`;}
 function pendingFor(pid){return S.ai.plan===pid?S.ai.items.filter(x=>x.status==='pending').map(x=>({cid:x.cid,sid:x.sid})):[];}
 /* Shared timetable pieces. Clashing sections can never be placed, so the grid shows no clash markings. */
 function ttParts(pid,o){o=o||{};const P=S.plans[pid],map=P.sections,bh=blockHits(map),fr=fridays(map),cr=credits(map),days=daysOf(map),pend=pendingFor(pid);
-  const tabs=`<div class="tabs" role="tablist" aria-label="Plans">${S.order.map(p=>`<button class="tab" role="tab" aria-selected="${p===pid}" data-action="set-active" data-pid="${p}">${esc(S.plans[p].name)}${p===S.main?' <span aria-label="main plan">★</span>':''}</button>`).join('')}<button class="tab" data-action="dup-plan">+ Duplicate</button></div>`;
+  const tabs=`<div class="tabs" role="tablist" aria-label="Plans">${S.order.map(p=>`<button class="tab" role="tab" aria-selected="${p===pid}" data-action="set-active" data-pid="${p}">${esc(S.plans[p].name)}${p===S.main?' <span aria-label="main plan">★</span>':''}</button>`).join('')}<div class="split"><button class="tab" data-action="new-plan">+ New plan</button><button class="tab split-arrow" data-action="plan-menu" aria-haspopup="menu" aria-expanded="${!!ui.planMenu}" aria-label="More ways to make a plan">▾</button>
+    ${ui.planMenu?`<div class="menu split-menu" role="menu"><button role="menuitem" data-action="new-plan">New empty plan<span class="muted small">Start with a clear timetable</span></button><button role="menuitem" data-action="dup-plan">Duplicate ${esc(planName(pid))}<span class="muted small">Copy its ${entries(map).length} course${entries(map).length===1?'':'s'} into a new plan</span></button></div>`:''}</div></div>`;
   const cartReason=bh.length?`Move ${bh.length} class${bh.length>1?'es':''} out of your blocked time first.`:!cr?'Add at least one course first.':'';
   const metrics=`<div class="metrics tnum"><div class="kv"><span>Credits</span><b>${cr}</b></div><div class="kv"><span>Days on campus</span><b>${days.length}</b></div><div class="kv"><span>Friday classes</span><b>${fr.length}</b></div><div class="kv"><span>Blocked times</span><b>${S.blocks.length}</b></div></div>`;
   const toolbar=`<div class="toolbar">${o.builder?'':'<button class="btn" data-action="go" data-to="search">+ Add course</button>'}<button class="btn" data-action="open-block">Block time</button><button class="btn" data-action="go" data-to="compare">Compare plans</button>
@@ -720,7 +770,7 @@ function vTimetable(){const pid=S.active,P=S.plans[pid];if(!P){S.active=S.main;r
      <button class="btn btn-sm" data-action="open-secs" data-cid="${e.cid}">Change section</button><button class="btn btn-ghost btn-sm" data-action="remove-course" data-cid="${e.cid}">Remove</button></div>`).join('');
   return `<div class="page-head"><div><p class="eyebrow">Timetable · Winter 2027</p><h1>${esc(P.name)}${pid===S.main?' <span class="pill info" style="vertical-align:middle">★ Main plan</span>':''}</h1>${P.note?`<p class="sub">${esc(P.note)}</p>`:''}</div>${T.tabs}</div>
    <div class="stack">${T.metrics}${T.toolbar}${T.banners}
-    <div class="tt-scroll">${T.grid}</div>
+    <p class="tt-hint"><span class="sw-dark" aria-hidden="true"></span>Click or drag on empty time to block it. Click blocked time to free it.</p><div class="tt-scroll">${T.grid}</div>
     <section class="panel"><div class="panel-head"><h2>Courses in ${esc(P.name)}</h2><span class="small muted">Click a block or a course to change its section</span></div>
      <div class="course-list">${list||'<div class="empty">No courses yet. <button class="link" data-action="go" data-to="search">Search for a course</button> to start.</div>'}</div></section>
    </div>`;}
@@ -761,8 +811,8 @@ function vBuilder(){const pid=S.active,P=S.plans[pid];if(!P){S.active=S.main;ret
    <div class="builder">
      <section class="panel b-search" aria-labelledby="ba"><h2 id="ba" style="margin-bottom:12px">Add courses</h2>
       <div class="searchbox"><span aria-hidden="true">🔍</span><label for="q" class="sr">Search courses</label><input id="q" type="search" placeholder="Course code or title, e.g. ITEC 3330" value="${esc(ui.q)}" autocomplete="off"></div>
-      <div class="row" style="margin-top:10px;align-items:flex-start">
-       <details class="more" style="flex:1;min-width:0" ${nOn?'open':''}><summary>Filters${nOn?' ('+nOn+')':''}</summary>
+      <div style="display:flex;flex-direction:column-reverse;gap:10px;margin-top:10px">
+       <details class="more" style="min-width:0" ${nOn?'open':''}><summary>Filters${nOn?' ('+nOn+')':''}</summary>
         <div class="filters" style="position:static;gap:12px">
          <fieldset><legend>Requirement</legend>${ck('core3',f.req.core3,'Core ITEC 3000-level')}${ck('core4',f.req.core4,'Core ITEC 4000-level')}${ck('elec',f.req.elec,'Electives outside major')}</fieldset>
          <fieldset><legend>Schedule</legend>${ck('fits',f.fits,'Fits '+esc(planName(pid)))}${ck('nofri',f.nofri,'Has a non-Friday section')}${ck('seats',f.seats,'Has open seats')}</fieldset>
@@ -774,7 +824,7 @@ function vBuilder(){const pid=S.active,P=S.plans[pid];if(!P){S.active=S.main;ret
       <div id="results" style="margin-top:6px">${resultsHtml()}</div></section>
      <section class="panel b-courses" aria-labelledby="bc"><div class="panel-head"><h2 id="bc">Courses</h2><div class="row"><label for="bPlan" class="small muted"><b>Plan</b></label><select id="bPlan" class="select" style="width:auto" data-change="active-plan">${opts}</select></div></div>
       <div class="vcards">${ids.length?ids.map(cid=>vcard(cid,pid,map)).join(''):'<div class="empty">No courses yet. Search below and choose <b>+ Add</b>.</div>'}</div></section>
-    <div class="b-right" aria-label="Timetable">${T.metrics}${T.toolbar}${T.banners}<div class="tt-scroll">${T.grid}</div>
+    <div class="b-right" aria-label="Timetable">${T.metrics}${T.toolbar}${T.banners}<p class="tt-hint"><span class="sw-dark" aria-hidden="true"></span>Click or drag on empty time to block it. Click blocked time to free it.</p><div class="tt-scroll">${T.grid}</div>
      <p class="small muted">Solid blocks are in your plan. Dashed blocks are previews: click one, or its button on the left, to use that section.</p></div>
    </div>`;}
 function scrollCard(cid){setTimeout(()=>{const el=document.getElementById('vc-'+cid);if(el){el.scrollIntoView({block:'nearest',behavior:'smooth'});}},30);}
@@ -956,6 +1006,29 @@ function saveBlock(){readBlockForm();const F=ui.blockForm;
   commit(()=>{S.blocks.push({id:S.nextBlock++,label:lab,days:F.days.slice(),s:F.s,e:F.e});},`Blocked ${F.days.join(', ')} ${F.s}–${F.e} for “${lab}”`);}
 
 /* ================= ACTIONS ================= */
+/* ---- Click or drag on the timetable to block personal time (30-minute slots) ---- */
+const NSLOT=(T1-T0)/30;
+function slotMap(){const m={};S.blocks.forEach(b=>b.days.forEach(d=>{for(let t=tm(b.s);t<tm(b.e);t+=30){const i=(t-T0)/30;if(i>=0&&i<NSLOT)m[d+':'+i]=b.label;}}));return m;}
+function blocksFrom(m){const out=[];DAYS.forEach(d=>{let i=0;while(i<NSLOT){const lab=m[d+':'+i];if(lab===undefined){i++;continue;}let j=i;while(j+1<NSLOT&&m[d+':'+(j+1)]===lab)j++;
+  out.push({id:S.nextBlock++,label:lab,days:[d],s:fmt(T0+i*30),e:fmt(T0+(j+1)*30)});i=j+1;}});return out;}
+let paint=null;
+function paintRange(p){const a=DAYS.indexOf(p.d0),b=DAYS.indexOf(p.d1);return{days:DAYS.slice(Math.min(a,b),Math.max(a,b)+1),lo:Math.min(p.i0,p.i1),hi:Math.max(p.i0,p.i1)};}
+function hiPaint(){const r=paintRange(paint),cls=paint.mode==='on'?'sel-on':'sel-off';
+  document.querySelectorAll('.slot').forEach(x=>{const on=r.days.includes(x.dataset.d)&&+x.dataset.i>=r.lo&&+x.dataset.i<=r.hi;x.classList.toggle(cls,on);});}
+function clearPaint(){document.querySelectorAll('.slot.sel-on,.slot.sel-off').forEach(x=>x.classList.remove('sel-on','sel-off'));}
+function applyPaint(p){const r=paintRange(p),m=slotMap();let n=0;
+  r.days.forEach(d=>{for(let i=r.lo;i<=r.hi;i++){const k=d+':'+i;if(p.mode==='on'){if(m[k]===undefined){m[k]='Blocked';n++;}}else if(m[k]!==undefined){delete m[k];n++;}}});
+  clearPaint();if(!n)return;
+  const when=`${r.days.length>1?r.days[0]+'–'+r.days[r.days.length-1]:DAY_LONG[r.days[0]]} ${fmt(T0+r.lo*30)}–${fmt(T0+(r.hi+1)*30)}`;
+  commit(()=>{S.blocks=blocksFrom(m);},p.mode==='on'?`Blocked ${when}`:`Freed ${when}`);}
+document.addEventListener('pointerdown',e=>{const sl=e.target.closest&&e.target.closest('.slot');if(!sl||(e.pointerType==='mouse'&&e.button!==0))return;
+  if(e.pointerType==='mouse')e.preventDefault();
+  const d=sl.dataset.d,i=+sl.dataset.i;paint={d0:d,i0:i,d1:d,i1:i,mode:slotMap()[d+':'+i]!==undefined?'off':'on'};hiPaint();});
+document.addEventListener('pointermove',e=>{if(!paint)return;const el=document.elementFromPoint(e.clientX,e.clientY),sl=el&&el.closest('.slot');if(!sl)return;
+  if(sl.dataset.d!==paint.d1||+sl.dataset.i!==paint.i1){paint.d1=sl.dataset.d;paint.i1=+sl.dataset.i;hiPaint();}});
+document.addEventListener('pointerup',()=>{if(!paint)return;const p=paint;paint=null;applyPaint(p);});
+document.addEventListener('pointercancel',()=>{if(!paint)return;paint=null;clearPaint();});
+function nextPlanId(){for(let i=0;i<26;i++){const id=String.fromCharCode(65+i);if(!S.plans[id])return id;}return 'Z';}
 function act(a,el,e){const d=el.dataset;
   switch(a){
   case 'go':ui.menu=null;go(d.to);break;
@@ -989,7 +1062,12 @@ function act(a,el,e){const d=el.dataset;
     el.setAttribute('aria-pressed',i<0);blockPreview();break;}
   case 'save-block':saveBlock();break;
   case 'del-block':{const b=S.blocks.find(x=>x.id==d.id);commit(()=>{S.blocks=S.blocks.filter(x=>x.id!=d.id);},`Removed “${b.label}” on ${b.days.join(', ')}`);break;}
-  case 'dup-plan':{const src=S.active,id=String.fromCharCode(65+S.order.length);if(S.order.length>=6){toast('You can keep up to 6 plans.',{err:true});break;}
+  case 'req-toggle':{ui.reqOpen[d.k]=!ui.reqOpen[d.k];render();const b=document.querySelector(`.req-tog[data-k="${d.k}"]`);if(b)b.focus();break;}
+  case 'find-req':ui.f={req:{core3:false,core4:false,elec:false},fits:false,nofri:false,seats:false,elig:d.k!=='core4',r4:false};if(d.k in ui.f.req)ui.f.req[d.k]=true;ui.q='';go('search');break;
+  case 'plan-menu':ui.planMenu=!ui.planMenu;render();break;
+  case 'new-plan':{ui.planMenu=false;if(S.order.length>=6){toast('You can keep up to 6 plans.',{err:true});render();break;}const id=nextPlanId();ui.browse={};ui.adding=null;
+    commit(()=>{S.plans[id]={name:'Plan '+id,sections:{}};S.order.push(id);S.active=id;},`Created Plan ${id} with an empty timetable`);break;}
+  case 'dup-plan':{ui.planMenu=false;const src=S.active,id=nextPlanId();if(S.order.length>=6){toast('You can keep up to 6 plans.',{err:true});render();break;}
     commit(()=>{S.plans[id]={name:'Plan '+id,sections:Object.assign({},mapOf(src))};S.order.push(id);S.active=id;},`Created Plan ${id} as a copy of ${planName(src)}`);break;}
   case 'make-main':commit(()=>{S.main=d.pid;},`${planName(d.pid)} is now your main plan`);break;
   case 'del-plan':{const p=d.pid,nm=planName(p);commit(()=>{delete S.plans[p];S.order=S.order.filter(x=>x!==p);if(S.active===p)S.active=S.main;if(S.cart===p)S.cart=null;if(S.ai.plan===p){S.ai.plan=null;S.ai.items=[];}if(S.ai.goals.plan===p)S.ai.goals.plan=S.main;},`Deleted ${nm}`);break;}
@@ -1013,6 +1091,7 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('#mod')&&LOG.current){const t=LOG.tasks[LOG.current];if(t&&!t.end){t.clicks++;saveLog();}}
   const el=e.target.closest('[data-action]');
   if(ui.menu&&!e.target.closest('.bar-right')){ui.menu=null;renderNav();}
+  if(ui.planMenu&&!e.target.closest('.split')){ui.planMenu=false;render();}
   if(!el)return;
   if(el.tagName==='A')e.preventDefault();
   if(!e.target.closest('#mod'))logEv('click',(el.dataset.action)+(el.dataset.cid?' '+el.dataset.cid:'')+(el.dataset.sid?' '+el.dataset.sid:'')+(el.dataset.to?' → '+el.dataset.to:''));
@@ -1033,6 +1112,7 @@ document.addEventListener('change',e=>{const el=e.target;
   if(c==='remind'){S.remind=el.checked;save();toast(el.checked?'Reminder set for 15 minutes before enrolment opens.':'Reminder turned off.');logEv('action','remind '+el.checked);return;}
 });
 document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&ui.planMenu){ui.planMenu=false;render();}
   if(e.key==='Escape'){if(ui.layer){ui.layer=null;renderLayer();}else if(ui.menu){ui.menu=null;renderNav();}}
   if(e.key==='M'&&e.shiftKey&&!/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)){e.preventDefault();toggleMod();}
   if((e.key==='Enter'||e.key===' ')&&e.target.matches('.day-tog')){/* native button handles */}
